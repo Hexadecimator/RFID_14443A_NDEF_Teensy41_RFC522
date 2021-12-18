@@ -1,37 +1,20 @@
-/* mifare ultralight example (25-02-2018)
- * 
- *   RFID-RC522 (SPI connexion)
- *   
- *   CARD RC522      Arduino (UNO)
- *     SDA  -----------  10 (Configurable, see SS_PIN constant)
- *     SCK  -----------  13
- *     MOSI -----------  11
- *     MISO -----------  12
- *     IRQ  -----------  
- *     GND  -----------  GND
- *     RST  -----------  9 (onfigurable, see RST_PIN constant)
- *     3.3V ----------- 3.3V
- *     
- */
+/* 
+  MFRC522 to Teensy 4.1
+  SS    = pin 10
+  RESET = pin  9
+
+  Example how to dump string to buffer:
+  memcpy(buffer,"github.com",10);
+*/
 
 #include <SPI.h>
 #include <MFRC522.h>
 
-
-#define SS_PIN          10
-#define RST_PIN         9
+#define SS_PIN  10
+#define RST_PIN  9
 
 MFRC522 mfrc522(SS_PIN, RST_PIN);  // Create MFRC522 instance
 MFRC522::StatusCode status; //variable to get card status
-
-//byte buffer[18];
-
-// 03 11 D1 01 
-// 0D 55 01 61 
-// 64 61 66 72 
-// 75 69 74 2E 
-// 63 6F 6D     
-// (19 byte)
 
 // byte buffer[22] = 
 // { 
@@ -55,23 +38,20 @@ byte size = sizeof(buffer);
 byte rx_buffer[19];
 byte rx_size = sizeof(rx_buffer);
 
-byte guts[66];
-byte size_guts = 60;
+//byte guts[66];
+//byte size_guts = 0x40; // 64 bytes
+//uint8_t the_start = 0x00; 
 
 uint8_t pageAddr = 0x05;  //In this example we will write/read 16 bytes (page 6,7,8 and 9).
                           //Ultraligth mem = 16 pages. 4 bytes per page.  
                           //Pages 0 to 4 are for special functions.     
 
-uint8_t the_start = 0x00;      
-  
 void setup() 
 {
   Serial.begin(9600); // Initialize serial communications with the PC
   SPI.begin(); // Init SPI bus
   mfrc522.PCD_Init(); // Init MFRC522 card  
   Serial.println(F("Sketch has been started!"));
-
-  //memcpy(buffer,"HELLO WORLD! ;-)",16);
 }
 
 void loop() 
@@ -81,8 +61,6 @@ void loop()
 
   // Select one of the cards
   if ( ! mfrc522.PICC_ReadCardSerial()) return;
-
-  
 
   // Write data ***********************************************
   for (int i=0; i < 4; i++) 
@@ -96,6 +74,7 @@ void loop()
       return;
     }
   }
+  Serial.println();
   Serial.println(F("MIFARE_Ultralight_Write() OK "));
   Serial.println();
 
@@ -119,38 +98,33 @@ void loop()
     if (i==0)
     {
       Serial.print("Page ");
-      if (int(i)<10)
-      {
-        Serial.print(" ");
-      }
-      
+      if (int(i)<10) {Serial.print(" ");}
       Serial.print(i);
       Serial.print(": ");
-    }
-    
+    }    
     Serial.print("0x");
-
     Serial.print(rx_buffer[i], HEX);
     Serial.print(" ");
     if(int(i)+3<15 && int(i+1)%4==0) 
     {
       Serial.println();
       Serial.print("Page ");
-      if (int(i)<10)
-      {
-        Serial.print(" ");
-      }
+      if (int(i)<10) {Serial.print(" ");}
       Serial.print(i);
       Serial.print(": ");
     } 
   }
-  Serial.println();
-  Serial.println();
+  
+  /* 
+    this method doesn't work because it reads too much at a time
+    ... seems like max read limit is 16 bytes? 
+  */
 
-  Serial.println("****************************************");
-  Serial.println("***** Total Internal Contents *****");
-  mfrc522.PICC_DumpToSerial(&mfrc522.uid);
-  Serial.println();
+  // Serial.println();
+  // Serial.println();
+
+  // Serial.println("**********************************************");
+  // Serial.println("***** Internal Contents The Hard Way *****");
 
   // status = (MFRC522::StatusCode) mfrc522.MIFARE_Read(the_start, guts, &size_guts);
   // if (status != MFRC522::STATUS_OK)
@@ -165,24 +139,39 @@ void loop()
   //   if (i == 0)
   //   {
   //     Serial.println();
-  //     Serial.print("Page ");
+  //     Serial.print("Page  ");
   //     Serial.print(i);
   //     Serial.print(": ");
   //   }
 
-  //   Serial.print("0x");
+  //   if(guts[i]<=0xF) Serial.print("0x0");
+  //   else Serial.print("0x");
+
   //   Serial.print(guts[i], HEX);
   //   Serial.print(" ");
 
   //   if(int(i+1)%4==0) 
   //   {
   //     Serial.println();
-  //     Serial.print("Page ");
+  //     if(int(i)<10)
+  //     {
+  //       Serial.print("Page  ");
+  //     }
+  //     else
+  //     {
+  //       Serial.print("Page ");
+  //     }
   //     Serial.print(i);
   //     Serial.print(": ");
   //   }
   // }
 
+  Serial.println();
+  Serial.println();
+
+  Serial.println("****************************************");
+  Serial.println("***** Total Internal Contents *****");
+  mfrc522.PICC_DumpToSerial(&mfrc522.uid);
   Serial.println();
 
   mfrc522.PICC_HaltA();
